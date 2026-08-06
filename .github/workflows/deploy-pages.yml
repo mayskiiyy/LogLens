@@ -29,12 +29,17 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm install
+          npm install --prefix apps/web
 
       - name: Build Web App for Static Pages
-        run: npm run build --workspace=apps/web
+        run: npm run build --prefix apps/web
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
