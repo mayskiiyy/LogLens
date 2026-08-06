@@ -1,0 +1,21 @@
+{
+  "name": "loglens-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "check": "npm run check --workspace=apps/web",
+    "lint": "npm run lint --workspace=apps/web",
+    "format": "npm run format --workspace=apps/web",
+    "test": "npm run test --workspace=apps/web",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

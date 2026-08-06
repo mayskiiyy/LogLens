@@ -1,0 +1,22 @@
+[package]
+name = "loglens-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+loglens-core = { path = "../loglens-core" }
+loglens-storage = { path = "../loglens-storage" }
+clap = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+anyhow = { workspace = true }
+
+[[bin]]
+name = "loglens"
+path = "src/main.rs"

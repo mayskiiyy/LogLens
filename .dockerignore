@@ -1,0 +1,15 @@
+/target
+/dist
+/node_modules
+apps/web/node_modules
+apps/web/build
+apps/web/.svelte-kit
+crates/loglens-desktop/src-tauri/target
+.git
+.github
+data/
+uploads/
+exports/
+tmp/
+*.db
+*.log

@@ -1,0 +1,22 @@
+[package]
+name = "loglens-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+loglens-core = { path = "../loglens-core" }
+loglens-storage = { path = "../loglens-storage" }
+loglens-api = { path = "../loglens-api" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+tower-http = { workspace = true, features = ["fs"] }
+axum = { workspace = true }
+
+[[bin]]
+name = "loglens-server"
+path = "src/main.rs"

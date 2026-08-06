@@ -1,0 +1,4 @@
+{"timestamp":"2026-08-07T08:00:00Z","level":"info","logger":"http_server","message":"Server listening on port 8080","req_id":"req-001"}
+{"timestamp":"2026-08-07T08:00:02Z","level":"debug","logger":"auth_service","message":"Verifying JWT token","user_id":"u-1234"}
+{"timestamp":"2026-08-07T08:00:05Z","level":"error","logger":"db_pool","message":"Database connection refused at 10.0.0.5:5432","error_code":"ECONNREFUSED","attempt":1}
+{"timestamp":"2026-08-07T08:00:06Z","level":"error","logger":"db_pool","message":"Database connection refused at 10.0.0.5:5432","error_code":"ECONNREFUSED","attempt":2}

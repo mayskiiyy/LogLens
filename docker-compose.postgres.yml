@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  loglens:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: loglens:latest
+    container_name: loglens-pg
+    ports:
+      - "8080:8080"
+    environment:
+      - LOGLENS_HOST=0.0.0.0
+      - LOGLENS_PORT=8080
+      - LOGLENS_DATABASE_URL=postgres://loglens:secretpass@postgres:5432/loglens
+      - LOGLENS_DATA_DIR=/data
+      - LOGLENS_SESSION_SECRET=${LOGLENS_SESSION_SECRET:-change-this-session-secret-min-32-bytes-long!}
+    volumes:
+      - loglens_data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: loglens-postgres
+    environment:
+      POSTGRES_DB: loglens
+      POSTGRES_USER: loglens
+      POSTGRES_PASSWORD: secretpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loglens -d loglens"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  loglens_data:
+  postgres_data:

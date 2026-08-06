@@ -1,0 +1,49 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/loglens-core",
+    "crates/loglens-storage",
+    "crates/loglens-api",
+    "crates/loglens-server",
+    "crates/loglens-cli",
+    "crates/loglens-desktop",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "Apache-2.0"
+repository = "https://github.com/mayskiiyy/LogLens"
+authors = ["LogLens Contributors"]
+
+[workspace.dependencies]
+tokio = { version = "1.40", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+blake3 = "1.5"
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.10"
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-native-tls", "sqlite", "postgres", "chrono", "uuid", "json"] }
+axum = { version = "0.7", features = ["macros", "multipart"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs", "cors", "trace", "compression-full", "timeout"] }
+argon2 = "0.5"
+notify = "6.1"
+async-compression = { version = "0.4", features = ["tokio", "gzip"] }
+flate2 = "1.0"
+zip = "2.2"
+clap = { version = "4.5", features = ["derive", "env"] }
+utoipa = { version = "5.2", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "8.0", features = ["axum"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

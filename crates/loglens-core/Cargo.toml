@@ -1,0 +1,21 @@
+[package]
+name = "loglens-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+blake3 = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+regex = { workspace = true }
+tokio = { workspace = true, features = ["io-util", "sync", "fs"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "macros"] }
