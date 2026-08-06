@@ -1,8 +1,8 @@
+use crate::db::StorageError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
-use crate::db::StorageError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceRecord {
@@ -47,10 +47,11 @@ impl<'a> WorkspaceRepository<'a> {
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<WorkspaceRecord>, StorageError> {
-        let row = sqlx::query("SELECT id, name, owner_id, created_at FROM workspaces WHERE id = ?")
-            .bind(id.to_string())
-            .fetch_optional(self.pool)
-            .await?;
+        let row =
+            sqlx::query("SELECT id, name, owner_id, created_at FROM workspaces WHERE id = ?")
+                .bind(id.to_string())
+                .fetch_optional(self.pool)
+                .await?;
 
         if let Some(r) = row {
             let id_str: String = r.get("id");
@@ -61,19 +62,24 @@ impl<'a> WorkspaceRepository<'a> {
                 id: Uuid::parse_str(&id_str).unwrap(),
                 name: r.get("name"),
                 owner_id: Uuid::parse_str(&owner_str).unwrap(),
-                created_at: DateTime::parse_from_rfc3339(&created_str).unwrap().with_timezone(&Utc),
+                created_at: DateTime::parse_from_rfc3339(&created_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
             }))
         } else {
             Ok(None)
         }
     }
 
-    pub async fn list_user_workspaces(&self, user_id: Uuid) -> Result<Vec<WorkspaceRecord>, StorageError> {
+    pub async fn list_user_workspaces(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Vec<WorkspaceRecord>, StorageError> {
         let rows = sqlx::query(
             r#"SELECT w.id, w.name, w.owner_id, w.created_at
                FROM workspaces w
                JOIN workspace_members wm ON w.id = wm.workspace_id
-               WHERE wm.user_id = ?"#
+               WHERE wm.user_id = ?"#,
         )
         .bind(user_id.to_string())
         .fetch_all(self.pool)
@@ -89,18 +95,25 @@ impl<'a> WorkspaceRepository<'a> {
                 id: Uuid::parse_str(&id_str).unwrap(),
                 name: r.get("name"),
                 owner_id: Uuid::parse_str(&owner_str).unwrap(),
-                created_at: DateTime::parse_from_rfc3339(&created_str).unwrap().with_timezone(&Utc),
+                created_at: DateTime::parse_from_rfc3339(&created_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
             });
         }
         Ok(list)
     }
 
-    pub async fn verify_user_access(&self, workspace_id: Uuid, user_id: Uuid) -> Result<bool, StorageError> {
-        let row = sqlx::query("SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
-            .bind(workspace_id.to_string())
-            .bind(user_id.to_string())
-            .fetch_optional(self.pool)
-            .await?;
+    pub async fn verify_user_access(
+        &self,
+        workspace_id: Uuid,
+        user_id: Uuid,
+    ) -> Result<bool, StorageError> {
+        let row =
+            sqlx::query("SELECT 1 FROM workspace_members WHERE workspace_id = ? AND user_id = ?")
+                .bind(workspace_id.to_string())
+                .bind(user_id.to_string())
+                .fetch_optional(self.pool)
+                .await?;
         Ok(row.is_some())
     }
 }
