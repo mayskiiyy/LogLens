@@ -47,11 +47,10 @@ impl<'a> WorkspaceRepository<'a> {
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<WorkspaceRecord>, StorageError> {
-        let row =
-            sqlx::query("SELECT id, name, owner_id, created_at FROM workspaces WHERE id = ?")
-                .bind(id.to_string())
-                .fetch_optional(self.pool)
-                .await?;
+        let row = sqlx::query("SELECT id, name, owner_id, created_at FROM workspaces WHERE id = ?")
+            .bind(id.to_string())
+            .fetch_optional(self.pool)
+            .await?;
 
         if let Some(r) = row {
             let id_str: String = r.get("id");
