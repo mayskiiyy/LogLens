@@ -1,5 +1,6 @@
-use sqlx::{AnyPool, Pool, Sqlite, SqlitePool};
+use sqlx::SqlitePool;
 use std::path::Path;
+use std::str::FromStr;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -34,7 +35,7 @@ impl Database {
             .busy_timeout(std::time::Duration::from_secs(5));
 
         let pool = SqlitePool::connect_with(opts).await?;
-        
+
         // Run embedded SQLite migrations
         sqlx::query(include_str!("../../migrations/sqlite/20260807000000_init.sql"))
             .execute(&pool)
@@ -47,5 +48,3 @@ impl Database {
         &self.pool
     }
 }
-
-use std::str::FromStr;

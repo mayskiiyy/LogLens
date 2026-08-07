@@ -3,9 +3,10 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/web/package.json ./apps/web/
-RUN npm ci
+COPY apps/web/package-lock.json ./apps/web/
+RUN npm install
 COPY apps/web ./apps/web
-RUN npm run build --workspace=apps/web
+RUN npm run build --prefix apps/web
 
 # Stage 2: Build Rust Backend
 FROM rust:1.80-slim AS rust-builder

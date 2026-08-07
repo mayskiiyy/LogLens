@@ -1,8 +1,8 @@
+use crate::db::StorageError;
 use chrono::{DateTime, Utc};
 use loglens_core::models::{EventGroup, Severity};
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
-use crate::db::StorageError;
 
 pub struct GroupRepository<'a> {
     pool: &'a SqlitePool,
@@ -13,21 +13,41 @@ impl<'a> GroupRepository<'a> {
         Self { pool }
     }
 
-    pub async fn list_groups(&self, workspace_id: Uuid) -> Result<Vec<EventGroup>, StorageError> {
+    pub async fn upsert_group(&self, group: &EventGroup) -> Result<(), StorageError> {
+        sqlx::query!(
+            r#"INSERT INTO event_groups (
+                id, workspace_id, fingerprint, title, severity, count,
+                first_seen, last_seen, sample_stack_trace
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(workspace_id, fingerprint) DO UPDATE SET
+                count = count + excluded.count,
+                last_seen = excluded.last_seen,
+                sample_stack_trace = COALESCE(event_groups.sample_stack_trace, excluded.sample_stack_trace)"#,
+            group.id.to_string(),
+            group.workspace_id.to_string(),
+            group.fingerprint,
+            group.title,
+            group.severity.as_str(),
+            group.count as i64,
+            group.first_seen.to_rfc3339(),
+            group.last_seen.to_rfc3339(),
+            group.sample_stack_trace
+        )
+        .execute(self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn list_workspace_groups(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<EventGroup>, StorageError> {
         let rows = sqlx::query(
-            r#"SELECT
-                fingerprint,
-                id as representative_event_id,
-                message as sample_message,
-                severity,
-                COUNT(*) as occurrence_count,
-                COUNT(DISTINCT source_id) as affected_sources_count,
-                MIN(ingested_at) as first_seen,
-                MAX(ingested_at) as last_seen
-               FROM events
+            r#"SELECT id, workspace_id, fingerprint, title, severity, count, first_seen, last_seen, sample_stack_trace
+               FROM event_groups
                WHERE workspace_id = ?
-               GROUP BY fingerprint
-               ORDER BY occurrence_count DESC"#
+               ORDER BY count DESC"#,
         )
         .bind(workspace_id.to_string())
         .fetch_all(self.pool)
@@ -35,22 +55,26 @@ impl<'a> GroupRepository<'a> {
 
         let mut groups = Vec::new();
         for r in rows {
-            let fp: String = r.get("fingerprint");
-            let ev_id_str: String = r.get("representative_event_id");
+            let id_str: String = r.get("id");
+            let ws_str: String = r.get("workspace_id");
+            let sev_str: String = r.get("severity");
             let first_str: String = r.get("first_seen");
             let last_str: String = r.get("last_seen");
-            let sev_str: String = r.get("severity");
 
             groups.push(EventGroup {
-                fingerprint: fp,
-                representative_event_id: Uuid::parse_str(&ev_id_str).unwrap(),
-                occurrence_count: r.get::<i64, _>("occurrence_count") as u64,
-                first_seen: DateTime::parse_from_rfc3339(&first_str).unwrap().with_timezone(&Utc),
-                last_seen: DateTime::parse_from_rfc3339(&last_str).unwrap().with_timezone(&Utc),
+                id: Uuid::parse_str(&id_str).unwrap(),
+                workspace_id: Uuid::parse_str(&ws_str).unwrap(),
+                fingerprint: r.get("fingerprint"),
+                title: r.get("title"),
                 severity: Severity::from_str_loose(&sev_str),
-                sample_message: r.get("sample_message"),
-                affected_sources_count: r.get::<i64, _>("affected_sources_count") as u64,
-                trend_buckets: vec![1, 2, 5, 3, 4],
+                count: r.get::<i64, _>("count") as u64,
+                first_seen: DateTime::parse_from_rfc3339(&first_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
+                last_seen: DateTime::parse_from_rfc3339(&last_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
+                sample_stack_trace: r.get("sample_stack_trace"),
             });
         }
 

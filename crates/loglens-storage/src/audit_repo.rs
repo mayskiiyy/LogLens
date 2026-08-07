@@ -1,18 +1,16 @@
+use crate::db::StorageError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
-use crate::db::StorageError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuditEventRecord {
+pub struct AuditLogRecord {
     pub id: Uuid,
     pub user_id: Option<Uuid>,
     pub action: String,
-    pub resource_type: String,
-    pub resource_id: Option<String>,
-    pub details: serde_json::Value,
-    pub created_at: DateTime<Utc>,
+    pub details: String,
+    pub timestamp: DateTime<Utc>,
 }
 
 pub struct AuditRepository<'a> {
@@ -24,21 +22,46 @@ impl<'a> AuditRepository<'a> {
         Self { pool }
     }
 
-    pub async fn record_event(&self, event: &AuditEventRecord) -> Result<(), StorageError> {
-        let details_json = serde_json::to_string(&event.details).unwrap_or_default();
+    pub async fn log_action(&self, rec: &AuditLogRecord) -> Result<(), StorageError> {
+        let user_id_str = rec.user_id.map(|u| u.to_string());
         sqlx::query!(
-            r#"INSERT INTO audit_events (id, user_id, action, resource_type, resource_id, details, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)"#,
-            event.id.to_string(),
-            event.user_id.map(|u| u.to_string()),
-            event.action,
-            event.resource_type,
-            event.resource_id,
-            details_json,
-            event.created_at.to_rfc3339()
+            r#"INSERT INTO audit_logs (id, user_id, action, details, timestamp)
+               VALUES (?, ?, ?, ?, ?)"#,
+            rec.id.to_string(),
+            user_id_str,
+            rec.action,
+            rec.details,
+            rec.timestamp.to_rfc3339()
         )
         .execute(self.pool)
         .await?;
         Ok(())
+    }
+
+    pub async fn list_recent_logs(&self, limit: i64) -> Result<Vec<AuditLogRecord>, StorageError> {
+        let rows = sqlx::query(
+            "SELECT id, user_id, action, details, timestamp FROM audit_logs ORDER BY timestamp DESC LIMIT ?",
+        )
+        .bind(limit)
+        .fetch_all(self.pool)
+        .await?;
+
+        let mut list = Vec::new();
+        for r in rows {
+            let id_str: String = r.get("id");
+            let user_str: Option<String> = r.get("user_id");
+            let ts_str: String = r.get("timestamp");
+
+            list.push(AuditLogRecord {
+                id: Uuid::parse_str(&id_str).unwrap(),
+                user_id: user_str.map(|s| Uuid::parse_str(&s).unwrap()),
+                action: r.get("action"),
+                details: r.get("details"),
+                timestamp: DateTime::parse_from_rfc3339(&ts_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
+            });
+        }
+        Ok(list)
     }
 }

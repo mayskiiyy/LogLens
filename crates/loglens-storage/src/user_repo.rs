@@ -1,8 +1,8 @@
+use crate::db::StorageError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
-use crate::db::StorageError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserRecord {
@@ -49,10 +49,12 @@ impl<'a> UserRepository<'a> {
     }
 
     pub async fn find_by_email(&self, email: &str) -> Result<Option<UserRecord>, StorageError> {
-        let row = sqlx::query("SELECT id, email, password_hash, role, created_at, updated_at FROM users WHERE email = ?")
-            .bind(email)
-            .fetch_optional(self.pool)
-            .await?;
+        let row = sqlx::query(
+            "SELECT id, email, password_hash, role, created_at, updated_at FROM users WHERE email = ?",
+        )
+        .bind(email)
+        .fetch_optional(self.pool)
+        .await?;
 
         if let Some(r) = row {
             let id_str: String = r.get("id");
@@ -64,8 +66,12 @@ impl<'a> UserRepository<'a> {
                 email: r.get("email"),
                 password_hash: r.get("password_hash"),
                 role: r.get("role"),
-                created_at: DateTime::parse_from_rfc3339(&created_str).unwrap().with_timezone(&Utc),
-                updated_at: DateTime::parse_from_rfc3339(&updated_str).unwrap().with_timezone(&Utc),
+                created_at: DateTime::parse_from_rfc3339(&created_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
+                updated_at: DateTime::parse_from_rfc3339(&updated_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
             }))
         } else {
             Ok(None)
@@ -73,10 +79,12 @@ impl<'a> UserRepository<'a> {
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<UserRecord>, StorageError> {
-        let row = sqlx::query("SELECT id, email, password_hash, role, created_at, updated_at FROM users WHERE id = ?")
-            .bind(id.to_string())
-            .fetch_optional(self.pool)
-            .await?;
+        let row = sqlx::query(
+            "SELECT id, email, password_hash, role, created_at, updated_at FROM users WHERE id = ?",
+        )
+        .bind(id.to_string())
+        .fetch_optional(self.pool)
+        .await?;
 
         if let Some(r) = row {
             let id_str: String = r.get("id");
@@ -88,8 +96,12 @@ impl<'a> UserRepository<'a> {
                 email: r.get("email"),
                 password_hash: r.get("password_hash"),
                 role: r.get("role"),
-                created_at: DateTime::parse_from_rfc3339(&created_str).unwrap().with_timezone(&Utc),
-                updated_at: DateTime::parse_from_rfc3339(&updated_str).unwrap().with_timezone(&Utc),
+                created_at: DateTime::parse_from_rfc3339(&created_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
+                updated_at: DateTime::parse_from_rfc3339(&updated_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
             }))
         } else {
             Ok(None)
@@ -118,12 +130,17 @@ impl<'a> UserRepository<'a> {
         Ok(())
     }
 
-    pub async fn find_session_by_hash(&self, token_hash: &str) -> Result<Option<SessionRecord>, StorageError> {
-        let row = sqlx::query("SELECT id, user_id, token_hash, expires_at, created_at FROM sessions WHERE token_hash = ? AND expires_at > ?")
-            .bind(token_hash)
-            .bind(Utc::now().to_rfc3339())
-            .fetch_optional(self.pool)
-            .await?;
+    pub async fn find_session_by_hash(
+        &self,
+        token_hash: &str,
+    ) -> Result<Option<SessionRecord>, StorageError> {
+        let row = sqlx::query(
+            "SELECT id, user_id, token_hash, expires_at, created_at FROM sessions WHERE token_hash = ? AND expires_at > ?",
+        )
+        .bind(token_hash)
+        .bind(Utc::now().to_rfc3339())
+        .fetch_optional(self.pool)
+        .await?;
 
         if let Some(r) = row {
             let id_str: String = r.get("id");
@@ -135,8 +152,12 @@ impl<'a> UserRepository<'a> {
                 id: Uuid::parse_str(&id_str).unwrap(),
                 user_id: Uuid::parse_str(&user_id_str).unwrap(),
                 token_hash: r.get("token_hash"),
-                expires_at: DateTime::parse_from_rfc3339(&exp_str).unwrap().with_timezone(&Utc),
-                created_at: DateTime::parse_from_rfc3339(&created_str).unwrap().with_timezone(&Utc),
+                expires_at: DateTime::parse_from_rfc3339(&exp_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
+                created_at: DateTime::parse_from_rfc3339(&created_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
             }))
         } else {
             Ok(None)

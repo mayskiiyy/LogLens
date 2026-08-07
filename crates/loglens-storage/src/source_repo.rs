@@ -1,8 +1,8 @@
+use crate::db::StorageError;
 use chrono::{DateTime, Utc};
 use loglens_core::models::LogSource;
 use sqlx::{Row, SqlitePool};
 use uuid::Uuid;
-use crate::db::StorageError;
 
 pub struct SourceRepository<'a> {
     pool: &'a SqlitePool,
@@ -13,85 +13,96 @@ impl<'a> SourceRepository<'a> {
         Self { pool }
     }
 
-    pub async fn create_source(&self, source: &LogSource) -> Result<(), StorageError> {
-        sqlx::query(
-            r#"INSERT INTO sources (
-                id, workspace_id, owner_id, display_name, original_path, source_type,
-                parser_name, parser_confidence, detected_encoding, size_bytes, current_offset,
-                line_count, event_count, imported_at, last_scanned_at, last_modified_at,
-                checksum, live_watch_enabled, status, error_details
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#
+    pub async fn create_source(&self, src: &LogSource) -> Result<(), StorageError> {
+        sqlx::query!(
+            r#"INSERT INTO sources (id, workspace_id, name, source_type, file_path, file_size, event_count, status, error_message, ingested_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+            src.id.to_string(),
+            src.workspace_id.to_string(),
+            src.name,
+            src.source_type,
+            src.file_path,
+            src.file_size as i64,
+            src.event_count as i64,
+            src.status,
+            src.error_message,
+            src.ingested_at.to_rfc3339()
         )
-        .bind(source.id.to_string())
-        .bind(source.workspace_id.to_string())
-        .bind(source.owner_id.map(|u| u.to_string()))
-        .bind(&source.display_name)
-        .bind(&source.original_path)
-        .bind(&source.source_type)
-        .bind(&source.parser_name)
-        .bind(source.parser_confidence)
-        .bind(&source.detected_encoding)
-        .bind(source.size_bytes as i64)
-        .bind(source.current_offset as i64)
-        .bind(source.line_count as i64)
-        .bind(source.event_count as i64)
-        .bind(source.imported_at.to_rfc3339())
-        .bind(source.last_scanned_at.map(|t| t.to_rfc3339()))
-        .bind(source.last_modified_at.map(|t| t.to_rfc3339()))
-        .bind(&source.checksum)
-        .bind(if source.live_watch_enabled { 1 } else { 0 })
-        .bind(&source.status)
-        .bind(&source.error_details)
         .execute(self.pool)
         .await?;
         Ok(())
     }
 
-    pub async fn list_sources(&self, workspace_id: Uuid) -> Result<Vec<LogSource>, StorageError> {
-        let rows = sqlx::query("SELECT * FROM sources WHERE workspace_id = ? ORDER BY imported_at DESC")
-            .bind(workspace_id.to_string())
-            .fetch_all(self.pool)
-            .await?;
+    pub async fn find_by_id(&self, id: Uuid) -> Result<Option<LogSource>, StorageError> {
+        let row = sqlx::query(
+            "SELECT id, workspace_id, name, source_type, file_path, file_size, event_count, status, error_message, ingested_at FROM sources WHERE id = ?",
+        )
+        .bind(id.to_string())
+        .fetch_optional(self.pool)
+        .await?;
+
+        if let Some(r) = row {
+            let id_str: String = r.get("id");
+            let ws_str: String = r.get("workspace_id");
+            let ingested_str: String = r.get("ingested_at");
+
+            Ok(Some(LogSource {
+                id: Uuid::parse_str(&id_str).unwrap(),
+                workspace_id: Uuid::parse_str(&ws_str).unwrap(),
+                name: r.get("name"),
+                source_type: r.get("source_type"),
+                file_path: r.get("file_path"),
+                file_size: r.get::<i64, _>("file_size") as u64,
+                event_count: r.get::<i64, _>("event_count") as u64,
+                status: r.get("status"),
+                error_message: r.get("error_message"),
+                ingested_at: DateTime::parse_from_rfc3339(&ingested_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn list_workspace_sources(
+        &self,
+        workspace_id: Uuid,
+    ) -> Result<Vec<LogSource>, StorageError> {
+        let rows = sqlx::query(
+            "SELECT id, workspace_id, name, source_type, file_path, file_size, event_count, status, error_message, ingested_at FROM sources WHERE workspace_id = ? ORDER BY ingested_at DESC",
+        )
+        .bind(workspace_id.to_string())
+        .fetch_all(self.pool)
+        .await?;
 
         let mut list = Vec::new();
         for r in rows {
             let id_str: String = r.get("id");
             let ws_str: String = r.get("workspace_id");
-            let owner_str: Option<String> = r.get("owner_id");
-            let imp_str: String = r.get("imported_at");
-            let scan_str: Option<String> = r.get("last_scanned_at");
-            let mod_str: Option<String> = r.get("last_modified_at");
+            let ingested_str: String = r.get("ingested_at");
 
             list.push(LogSource {
                 id: Uuid::parse_str(&id_str).unwrap(),
-                owner_id: owner_str.map(|s| Uuid::parse_str(&s).unwrap()),
                 workspace_id: Uuid::parse_str(&ws_str).unwrap(),
-                display_name: r.get("display_name"),
-                original_path: r.get("original_path"),
+                name: r.get("name"),
                 source_type: r.get("source_type"),
-                parser_name: r.get("parser_name"),
-                parser_confidence: r.get("parser_confidence"),
-                detected_encoding: r.get("detected_encoding"),
-                size_bytes: r.get::<i64, _>("size_bytes") as u64,
-                current_offset: r.get::<i64, _>("current_offset") as u64,
-                line_count: r.get::<i64, _>("line_count") as u64,
+                file_path: r.get("file_path"),
+                file_size: r.get::<i64, _>("file_size") as u64,
                 event_count: r.get::<i64, _>("event_count") as u64,
-                imported_at: DateTime::parse_from_rfc3339(&imp_str).unwrap().with_timezone(&Utc),
-                last_scanned_at: scan_str.map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
-                last_modified_at: mod_str.map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
-                checksum: r.get("checksum"),
-                live_watch_enabled: r.get::<i32, _>("live_watch_enabled") == 1,
                 status: r.get("status"),
-                error_details: r.get("error_details"),
+                error_message: r.get("error_message"),
+                ingested_at: DateTime::parse_from_rfc3339(&ingested_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
             });
         }
         Ok(list)
     }
 
-    pub async fn delete_source(&self, source_id: Uuid, workspace_id: Uuid) -> Result<(), StorageError> {
-        sqlx::query("DELETE FROM sources WHERE id = ? AND workspace_id = ?")
-            .bind(source_id.to_string())
-            .bind(workspace_id.to_string())
+    pub async fn delete_source(&self, id: Uuid) -> Result<(), StorageError> {
+        sqlx::query("DELETE FROM sources WHERE id = ?")
+            .bind(id.to_string())
             .execute(self.pool)
             .await?;
         Ok(())
