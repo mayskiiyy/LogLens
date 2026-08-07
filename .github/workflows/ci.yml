@@ -54,7 +54,7 @@ jobs:
         run: npm run check --prefix apps/web
 
       - name: Prettier Format Check
-        run: npm run format --prefix apps/web
+        run: npx prettier --check src --prefix apps/web
 
       - name: Vitest Frontend Tests
         run: npm run test --prefix apps/web

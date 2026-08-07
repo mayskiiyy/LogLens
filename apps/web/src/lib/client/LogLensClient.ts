@@ -1,4 +1,11 @@
-import type { EventGroup, LogEvent, LogSource, QueryFilter, User, Workspace } from '../types';
+import type {
+  EventGroup,
+  LogEvent,
+  LogSource,
+  QueryFilter,
+  User,
+  Workspace,
+} from "../types";
 
 export interface LogLensClient {
   bootstrap(email: string, pass: string): Promise<User>;
@@ -11,5 +18,9 @@ export interface LogLensClient {
   deleteSource(workspaceId: string, sourceId: string): Promise<void>;
   queryEvents(workspaceId: string, filter: QueryFilter): Promise<LogEvent[]>;
   listGroups(workspaceId: string): Promise<EventGroup[]>;
-  exportEvents(workspaceId: string, format: string, query?: string): Promise<Blob>;
+  exportEvents(
+    workspaceId: string,
+    format: string,
+    query?: string,
+  ): Promise<Blob>;
 }

@@ -1,18 +1,18 @@
 export type Severity =
-  | 'trace'
-  | 'debug'
-  | 'info'
-  | 'notice'
-  | 'warning'
-  | 'error'
-  | 'critical'
-  | 'fatal'
-  | 'unknown';
+  | "trace"
+  | "debug"
+  | "info"
+  | "notice"
+  | "warning"
+  | "error"
+  | "critical"
+  | "fatal"
+  | "unknown";
 
 export interface User {
   id: string;
   email: string;
-  role: 'admin' | 'member' | 'viewer';
+  role: "admin" | "member" | "viewer";
 }
 
 export interface Workspace {

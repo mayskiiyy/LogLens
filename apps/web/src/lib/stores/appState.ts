@@ -1,18 +1,27 @@
-import { writable, derived } from 'svelte/store';
-import type { EventGroup, LogEvent, LogSource, Severity, User, Workspace } from '../types';
-import type { LogLensClient } from '../client/LogLensClient';
-import { HttpLogLensClient } from '../client/HttpClient';
-import { TauriLogLensClient } from '../client/TauriClient';
-import { DemoLogLensClient } from '../client/DemoClient';
+import { writable, derived } from "svelte/store";
+import type {
+  EventGroup,
+  LogEvent,
+  LogSource,
+  Severity,
+  User,
+  Workspace,
+} from "../types";
+import type { LogLensClient } from "../client/LogLensClient";
+import { HttpLogLensClient } from "../client/HttpClient";
+import { TauriLogLensClient } from "../client/TauriClient";
+import { DemoLogLensClient } from "../client/DemoClient";
 
 function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
 function isGithubPagesOrDemo(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   const host = window.location.hostname;
-  return host.includes('github.io') || window.location.search.includes('demo=true');
+  return (
+    host.includes("github.io") || window.location.search.includes("demo=true")
+  );
 }
 
 function createClient(): LogLensClient {
@@ -31,9 +40,11 @@ export const currentUser = writable<User | null>(null);
 export const workspaces = writable<Workspace[]>([]);
 export const currentWorkspace = writable<Workspace | null>(null);
 
-export const activeTab = writable<'timeline' | 'groups' | 'sources' | 'dashboard'>('timeline');
+export const activeTab = writable<
+  "timeline" | "groups" | "sources" | "dashboard"
+>("timeline");
 
-export const searchQuery = writable<string>('');
+export const searchQuery = writable<string>("");
 export const selectedSeverities = writable<Severity[]>([]);
 export const selectedSourceId = writable<string | null>(null);
 
@@ -56,7 +67,7 @@ export const errorCounts = derived(events, ($events) => {
     error: 0,
     critical: 0,
     fatal: 0,
-    unknown: 0
+    unknown: 0,
   };
 
   for (const ev of $events) {
