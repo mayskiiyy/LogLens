@@ -19,11 +19,20 @@ pub async fn list_groups_handler(
     Query(q): Query<GroupQuery>,
 ) -> Result<Json<Vec<EventGroup>>, ApiError> {
     let ws_repo = WorkspaceRepository::new(db.pool());
-    if !ws_repo.verify_user_access(q.workspace_id, user.id).await.map_err(|e| ApiError::Internal(e.to_string()))? {
-        return Err(ApiError::Forbidden("Access to workspace denied".to_string()));
+    if !ws_repo
+        .verify_user_access(q.workspace_id, user.id)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?
+    {
+        return Err(ApiError::Forbidden(
+            "Access to workspace denied".to_string(),
+        ));
     }
 
     let group_repo = GroupRepository::new(db.pool());
-    let groups = group_repo.list_groups(q.workspace_id).await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    let groups = group_repo
+        .list_workspace_groups(q.workspace_id)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
     Ok(Json(groups))
 }

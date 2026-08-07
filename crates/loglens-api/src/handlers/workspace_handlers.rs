@@ -13,7 +13,10 @@ pub async fn list_workspaces_handler(
     AuthUser { user }: AuthUser,
 ) -> Result<Json<Vec<WorkspaceRecord>>, ApiError> {
     let ws_repo = WorkspaceRepository::new(db.pool());
-    let list = ws_repo.list_user_workspaces(user.id).await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    let list = ws_repo
+        .list_user_workspaces(user.id)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
     Ok(Json(list))
 }
 
@@ -29,6 +32,9 @@ pub async fn create_workspace_handler(
         owner_id: user.id,
         created_at: Utc::now(),
     };
-    ws_repo.create_workspace(&ws).await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    ws_repo
+        .create_workspace(&ws)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
     Ok(Json(ws))
 }

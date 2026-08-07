@@ -18,7 +18,11 @@ pub struct ExportQuery {
 
 fn sanitize_csv_field(input: &str) -> String {
     let trimmed = input.trim();
-    if trimmed.starts_with('=') || trimmed.starts_with('+') || trimmed.starts_with('-') || trimmed.starts_with('@') {
+    if trimmed.starts_with('=')
+        || trimmed.starts_with('+')
+        || trimmed.starts_with('-')
+        || trimmed.starts_with('@')
+    {
         format!("'{}", trimmed)
     } else {
         trimmed.to_string()
@@ -32,8 +36,14 @@ pub async fn export_events_handler(
     Json(req): Json<ExportRequest>,
 ) -> Result<Response, ApiError> {
     let ws_repo = WorkspaceRepository::new(db.pool());
-    if !ws_repo.verify_user_access(q.workspace_id, user.id).await.map_err(|e| ApiError::Internal(e.to_string()))? {
-        return Err(ApiError::Forbidden("Access to workspace denied".to_string()));
+    if !ws_repo
+        .verify_user_access(q.workspace_id, user.id)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?
+    {
+        return Err(ApiError::Forbidden(
+            "Access to workspace denied".to_string(),
+        ));
     }
 
     let filter = QueryFilter {
@@ -43,7 +53,10 @@ pub async fn export_events_handler(
     };
 
     let event_repo = EventRepository::new(db.pool());
-    let events = event_repo.query_events(q.workspace_id, &filter).await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    let events = event_repo
+        .query_events(q.workspace_id, &filter)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     let format = req.format.to_lowercase();
     let (content_type, body_str) = match format.as_str() {
@@ -71,17 +84,23 @@ pub async fn export_events_handler(
             }
             ("application/x-ndjson", out)
         }
-        _ => { // default JSON
+        _ => {
+            // default JSON
             let out = serde_json::to_string_pretty(&events).unwrap_or_default();
             ("application/json", out)
         }
     };
 
     let mut headers = HeaderMap::new();
-    headers.insert(axum::http::header::CONTENT_TYPE, content_type.parse().unwrap());
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        content_type.parse().unwrap(),
+    );
     headers.insert(
         axum::http::header::CONTENT_DISPOSITION,
-        format!("attachment; filename=\"export.{}\"", format).parse().unwrap(),
+        format!("attachment; filename=\"export.{}\"", format)
+            .parse()
+            .unwrap(),
     );
 
     Ok((headers, body_str).into_response())

@@ -30,8 +30,14 @@ pub async fn query_events_handler(
     Query(q): Query<EventQueryParams>,
 ) -> Result<Json<Vec<LogEvent>>, ApiError> {
     let ws_repo = WorkspaceRepository::new(db.pool());
-    if !ws_repo.verify_user_access(q.workspace_id, user.id).await.map_err(|e| ApiError::Internal(e.to_string()))? {
-        return Err(ApiError::Forbidden("Access to workspace denied".to_string()));
+    if !ws_repo
+        .verify_user_access(q.workspace_id, user.id)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?
+    {
+        return Err(ApiError::Forbidden(
+            "Access to workspace denied".to_string(),
+        ));
     }
 
     let mut filter = QueryFilter {
@@ -50,7 +56,10 @@ pub async fn query_events_handler(
     }
 
     let event_repo = EventRepository::new(db.pool());
-    let events = event_repo.query_events(q.workspace_id, &filter).await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    let events = event_repo
+        .query_events(q.workspace_id, &filter)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
     Ok(Json(events))
 }
 
@@ -59,11 +68,13 @@ pub async fn event_sse_stream_handler(
     AuthUser { user: _ }: AuthUser,
     Query(q): Query<EventQueryParams>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    let stream = tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(Duration::from_secs(2)))
-        .map(move |_| {
-            let msg = format!("{{\"type\":\"ping\",\"workspace_id\":\"{}\"}}", q.workspace_id);
-            Ok(Event::default().data(msg))
-        });
+    let stream = tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(
+        Duration::from_secs(2),
+    ))
+    .map(move |_| {
+        let msg = format!("{{\"type\":\"ping\",\"workspace_id\":\"{}\"}}", q.workspace_id);
+        Ok(Event::default().data(msg))
+    });
 
     Sse::new(stream).keep_alive(axum::response::sse::KeepAlive::default())
 }
