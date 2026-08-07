@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use serde_json::Value;
 use crate::models::Severity;
 use crate::parsers::trait_def::{ParseError, ParsedLogEvent, Parser};
+use chrono::{DateTime, Utc};
+use serde_json::Value;
+use std::collections::HashMap;
 
 pub struct JsonLinesParser;
 
@@ -60,12 +60,11 @@ impl Parser for JsonLinesParser {
     }
 
     fn parse(&self, input: &str, line_number: u64) -> Result<ParsedLogEvent, ParseError> {
-        let obj: HashMap<String, Value> = serde_json::from_str(input.trim()).map_err(|e| {
-            ParseError::InvalidFormat {
+        let obj: HashMap<String, Value> =
+            serde_json::from_str(input.trim()).map_err(|e| ParseError::InvalidFormat {
                 line: line_number,
                 reason: format!("JSON parse error: {}", e),
-            }
-        })?;
+            })?;
 
         let mut timestamp = None;
         let ts_keys = ["timestamp", "time", "ts", "@timestamp", "datetime", "date"];
@@ -114,9 +113,19 @@ impl Parser for JsonLinesParser {
             }
         }
 
-        let req_id = obj.get("req_id").or_else(|| obj.get("request_id")).and_then(|v| v.as_str()).map(|s| s.to_string());
-        let corr_id = obj.get("correlation_id").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let trace_id = obj.get("trace_id").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let req_id = obj
+            .get("req_id")
+            .or_else(|| obj.get("request_id"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let corr_id = obj
+            .get("correlation_id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let trace_id = obj
+            .get("trace_id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         Ok(ParsedLogEvent {
             timestamp,

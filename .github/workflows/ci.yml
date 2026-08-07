@@ -51,12 +51,10 @@ jobs:
           npm install --prefix apps/web
 
       - name: Svelte Type Check
-        run: |
-          npx svelte-kit sync --prefix apps/web
-          npm run check --prefix apps/web
+        run: npm run check --prefix apps/web
 
       - name: Prettier Format Check
-        run: npx prettier --check src --prefix apps/web
+        run: npm run lint --prefix apps/web
 
       - name: Vitest Frontend Tests
         run: npm run test --prefix apps/web

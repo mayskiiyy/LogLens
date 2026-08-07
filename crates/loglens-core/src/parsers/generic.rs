@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
-use regex::Regex;
-use std::sync::OnceLock;
 use crate::models::Severity;
 use crate::parsers::trait_def::{ParseError, ParsedLogEvent, Parser};
+use chrono::{DateTime, Utc};
+use regex::Regex;
+use std::collections::HashMap;
+use std::sync::OnceLock;
 
 static RE_GENERIC: OnceLock<Regex> = OnceLock::new();
 
@@ -46,7 +46,7 @@ impl Parser for GenericLogParser {
         }
     }
 
-    fn parse(&self, input: &str, line_number: u64) -> Result<ParsedLogEvent, ParseError> {
+    fn parse(&self, input: &str, _line_number: u64) -> Result<ParsedLogEvent, ParseError> {
         let trimmed = input.trim();
         if let Some(caps) = get_generic_regex().captures(trimmed) {
             let ts_str = caps.name("ts").unwrap().as_str();
@@ -54,11 +54,18 @@ impl Parser for GenericLogParser {
                 .map(|dt| dt.with_timezone(&Utc))
                 .ok();
 
-            let lvl_str = caps.name("level1").or_else(|| caps.name("level2")).map(|m| m.as_str()).unwrap_or("INFO");
+            let lvl_str = caps
+                .name("level1")
+                .or_else(|| caps.name("level2"))
+                .map(|m| m.as_str())
+                .unwrap_or("INFO");
             let severity = Severity::from_str_loose(lvl_str);
 
             let target = caps.name("target").map(|m| m.as_str().to_string());
-            let message = caps.name("msg").map(|m| m.as_str().to_string()).unwrap_or_default();
+            let message = caps
+                .name("msg")
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
 
             Ok(ParsedLogEvent {
                 timestamp,
@@ -71,7 +78,6 @@ impl Parser for GenericLogParser {
                 trace_id: None,
             })
         } else {
-            // Fallback for unstructured line
             let severity = if trimmed.to_lowercase().contains("error") {
                 Severity::Error
             } else if trimmed.to_lowercase().contains("warn") {

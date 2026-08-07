@@ -39,9 +39,7 @@ jobs:
           npm install --prefix apps/web
 
       - name: Build Web App for Static Pages
-        run: |
-          npx svelte-kit sync --prefix apps/web
-          npm run build --prefix apps/web
+        run: npm run build --prefix apps/web
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

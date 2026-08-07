@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use crate::db::StorageError;
 use chrono::{DateTime, Utc};
 use loglens_core::models::{LogEvent, QueryFilter, Severity};
 use sqlx::{Row, SqlitePool};
+use std::collections::HashMap;
 use uuid::Uuid;
-use crate::db::StorageError;
 
 pub struct EventRepository<'a> {
     pool: &'a SqlitePool,
@@ -22,7 +22,8 @@ impl<'a> EventRepository<'a> {
         let mut tx = self.pool.begin().await?;
 
         for event in events {
-            let structured_json = serde_json::to_string(&event.structured_fields).unwrap_or_default();
+            let structured_json =
+                serde_json::to_string(&event.structured_fields).unwrap_or_default();
             let warnings_json = serde_json::to_string(&event.warnings).unwrap_or_default();
             let parsed_ts_str = event.parsed_timestamp.map(|t| t.to_rfc3339());
 
@@ -32,7 +33,7 @@ impl<'a> EventRepository<'a> {
                     byte_start, byte_end, parsed_timestamp, ingested_at, severity, target,
                     message, stack_trace, structured_fields, raw, normalized_message,
                     fingerprint, parser_name, warnings, correlation_id, request_id, trace_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
             )
             .bind(event.id.to_string())
             .bind(event.workspace_id.to_string())
@@ -65,7 +66,11 @@ impl<'a> EventRepository<'a> {
         Ok(())
     }
 
-    pub async fn query_events(&self, workspace_id: Uuid, filter: &QueryFilter) -> Result<Vec<LogEvent>, StorageError> {
+    pub async fn query_events(
+        &self,
+        workspace_id: Uuid,
+        filter: &QueryFilter,
+    ) -> Result<Vec<LogEvent>, StorageError> {
         let mut query_sql = String::from("SELECT e.* FROM events e ");
 
         if let Some(ref q) = filter.search_query {
@@ -83,7 +88,11 @@ impl<'a> EventRepository<'a> {
         }
 
         if !filter.severities.is_empty() {
-            let sevs: Vec<String> = filter.severities.iter().map(|s| format!("'{}'", s.as_str())).collect();
+            let sevs: Vec<String> = filter
+                .severities
+                .iter()
+                .map(|s| format!("'{}'", s.as_str()))
+                .collect();
             query_sql.push_str(&format!("AND e.severity IN ({}) ", sevs.join(",")));
         }
 
@@ -130,7 +139,8 @@ impl<'a> EventRepository<'a> {
             let struct_str: String = r.get("structured_fields");
             let warn_str: String = r.get("warnings");
 
-            let structured: HashMap<String, serde_json::Value> = serde_json::from_str(&struct_str).unwrap_or_default();
+            let structured: HashMap<String, serde_json::Value> =
+                serde_json::from_str(&struct_str).unwrap_or_default();
             let warnings: Vec<String> = serde_json::from_str(&warn_str).unwrap_or_default();
 
             events.push(LogEvent {
@@ -142,8 +152,14 @@ impl<'a> EventRepository<'a> {
                 line_end: r.get::<i64, _>("line_end") as u64,
                 byte_start: r.get::<i64, _>("byte_start") as u64,
                 byte_end: r.get::<i64, _>("byte_end") as u64,
-                parsed_timestamp: parsed_ts_str.map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
-                ingested_at: DateTime::parse_from_rfc3339(&ingested_str).unwrap().with_timezone(&Utc),
+                parsed_timestamp: parsed_ts_str.map(|s| {
+                    DateTime::parse_from_rfc3339(&s)
+                        .unwrap()
+                        .with_timezone(&Utc)
+                }),
+                ingested_at: DateTime::parse_from_rfc3339(&ingested_str)
+                    .unwrap()
+                    .with_timezone(&Utc),
                 severity: Severity::from_str_loose(&sev_str),
                 target: r.get("target"),
                 message: r.get("message"),

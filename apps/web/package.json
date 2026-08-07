@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "npx vite build",
+    "build": "svelte-kit sync && vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
-    "lint": "prettier --check .",
-    "format": "prettier --write .",
+    "lint": "prettier --check src",
+    "format": "prettier --write src",
     "test": "vitest run"
   },
   "devDependencies": {
