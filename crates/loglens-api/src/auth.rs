@@ -5,7 +5,6 @@ use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::http::HeaderMap;
 use loglens_storage::{Database, UserRecord, UserRepository};
-use uuid::Uuid;
 
 use crate::error::ApiError;
 
@@ -63,7 +62,8 @@ where
             }
         }
 
-        let token_str = token.ok_or_else(|| ApiError::Unauthorized("Missing session cookie".to_string()))?;
+        let token_str = token
+            .ok_or_else(|| ApiError::Unauthorized("Missing session cookie".to_string()))?;
         let token_hash = hash_token(token_str);
 
         let user_repo = UserRepository::new(db.pool());

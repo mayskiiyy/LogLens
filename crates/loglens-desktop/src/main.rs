@@ -1,10 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::path::PathBuf;
-use std::sync::Arc;
 use loglens_core::models::{EventGroup, LogEvent, LogSource, QueryFilter};
 use loglens_core::StreamingLogReader;
 use loglens_storage::{Database, EventRepository, GroupRepository, SourceRepository};
+use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::State;
 use tokio::sync::Mutex;
 use uuid::Uuid;
@@ -17,11 +17,16 @@ struct AppState {
 async fn list_sources(state: State<'_, Arc<Mutex<AppState>>>) -> Result<Vec<LogSource>, String> {
     let state_guard = state.lock().await;
     let repo = SourceRepository::new(state_guard.db.pool());
-    repo.list_sources(Uuid::nil()).await.map_err(|e| e.to_string())
+    repo.list_workspace_sources(Uuid::nil())
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn import_file(path: String, state: State<'_, Arc<Mutex<AppState>>>) -> Result<LogSource, String> {
+async fn import_file(
+    path: String,
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<LogSource, String> {
     let state_guard = state.lock().await;
     let file_path = PathBuf::from(path);
     let src_id = Uuid::new_v4();
@@ -33,41 +38,64 @@ async fn import_file(path: String, state: State<'_, Arc<Mutex<AppState>>>) -> Re
         .map_err(|e| e.to_string())?;
 
     let src_repo = SourceRepository::new(state_guard.db.pool());
-    src_repo.create_source(&source).await.map_err(|e| e.to_string())?;
+    src_repo
+        .create_source(&source)
+        .await
+        .map_err(|e| e.to_string())?;
 
     let event_repo = EventRepository::new(state_guard.db.pool());
-    event_repo.insert_events_batch(&events).await.map_err(|e| e.to_string())?;
+    event_repo
+        .insert_events_batch(&events)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(source)
 }
 
 #[tauri::command]
-async fn delete_source(source_id: String, state: State<'_, Arc<Mutex<AppState>>>) -> Result<(), String> {
+async fn delete_source(
+    source_id: String,
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<(), String> {
     let state_guard = state.lock().await;
     let id = Uuid::parse_str(&source_id).map_err(|e| e.to_string())?;
     let repo = SourceRepository::new(state_guard.db.pool());
-    repo.delete_source(id, Uuid::nil()).await.map_err(|e| e.to_string())
+    repo.delete_source(id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn query_events(filter: QueryFilter, state: State<'_, Arc<Mutex<AppState>>>) -> Result<Vec<LogEvent>, String> {
+async fn query_events(
+    filter: QueryFilter,
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<Vec<LogEvent>, String> {
     let state_guard = state.lock().await;
     let repo = EventRepository::new(state_guard.db.pool());
-    repo.query_events(Uuid::nil(), &filter).await.map_err(|e| e.to_string())
+    repo.query_events(Uuid::nil(), &filter)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn list_groups(state: State<'_, Arc<Mutex<AppState>>>) -> Result<Vec<EventGroup>, String> {
     let state_guard = state.lock().await;
     let repo = GroupRepository::new(state_guard.db.pool());
-    repo.list_groups(Uuid::nil()).await.map_err(|e| e.to_string())
+    repo.list_workspace_groups(Uuid::nil())
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn export_events(_format: String, _query: Option<String>, state: State<'_, Arc<Mutex<AppState>>>) -> Result<String, String> {
+async fn export_events(
+    _format: String,
+    _query: Option<String>,
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<String, String> {
     let state_guard = state.lock().await;
     let repo = EventRepository::new(state_guard.db.pool());
-    let events = repo.query_events(Uuid::nil(), &Default::default()).await.map_err(|e| e.to_string())?;
+    let events = repo
+        .query_events(Uuid::nil(), &Default::default())
+        .await
+        .map_err(|e| e.to_string())?;
     serde_json::to_string_pretty(&events).map_err(|e| e.to_string())
 }
 

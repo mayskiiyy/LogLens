@@ -26,12 +26,14 @@ use handlers::workspace_handlers::*;
         handlers::health::health_handler,
         handlers::health::ready_handler,
     ),
-    components(
-        schemas(HealthResponse, ProblemDetails, BootstrapAdminRequest, LoginRequest, UserResponse)
-    ),
-    tags(
-        (name = "loglens", description = "LogLens API endpoints")
-    )
+    components(schemas(
+        HealthResponse,
+        ProblemDetails,
+        BootstrapAdminRequest,
+        LoginRequest,
+        UserResponse
+    )),
+    tags((name = "loglens", description = "LogLens API endpoints"))
 )]
 pub struct ApiDoc;
 
@@ -47,7 +49,10 @@ pub fn create_router(db: Database) -> Router {
         .route("/auth/bootstrap", post(bootstrap_handler))
         .route("/auth/login", post(login_handler))
         .route("/auth/me", get(me_handler))
-        .route("/workspaces", get(list_workspaces_handler).post(create_workspace_handler))
+        .route(
+            "/workspaces",
+            get(list_workspaces_handler).post(create_workspace_handler),
+        )
         .route("/sources", get(list_sources_handler))
         .route("/sources/upload", post(upload_source_handler))
         .route("/sources/:id", axum::routing::delete(delete_source_handler))
@@ -57,7 +62,10 @@ pub fn create_router(db: Database) -> Router {
         .route("/exports", post(export_events_handler));
 
     Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(
+            SwaggerUi::new("/swagger-ui")
+                .url("/api-docs/openapi.json", ApiDoc::openapi()),
+        )
         .nest("/api/v1", api_routes)
         .layer(cors)
         .layer(TraceLayer::new_for_http())

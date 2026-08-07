@@ -1,7 +1,7 @@
-use std::net::SocketAddr;
 use anyhow::{Context, Result};
 use loglens_api::create_router;
 use loglens_storage::Database;
+use std::net::SocketAddr;
 use tower_http::services::ServeDir;
 
 #[tokio::main]
@@ -19,7 +19,9 @@ async fn main() -> Result<()> {
         .unwrap_or_else(|_| "sqlite:///data/loglens.db".to_string());
 
     tracing::info!("Connecting to database at {}", db_url);
-    let db = Database::new_sqlite(&db_url).await.context("Failed to initialize database")?;
+    let db = Database::new_sqlite(&db_url)
+        .await
+        .context("Failed to initialize database")?;
 
     let app = create_router(db).fallback_service(ServeDir::new("apps/web/build"));
 
