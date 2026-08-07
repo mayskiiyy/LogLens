@@ -3,7 +3,9 @@ use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use chrono::{Duration, Utc};
-use loglens_storage::{Database, SessionRecord, UserRecord, UserRepository, WorkspaceRecord, WorkspaceRepository};
+use loglens_storage::{
+    Database, SessionRecord, UserRecord, UserRepository, WorkspaceRecord, WorkspaceRepository,
+};
 use uuid::Uuid;
 
 use crate::auth::{hash_password, hash_token, verify_password, AuthUser};
@@ -15,10 +17,15 @@ pub async fn bootstrap_handler(
     Json(req): Json<BootstrapAdminRequest>,
 ) -> Result<Json<UserResponse>, ApiError> {
     let user_repo = UserRepository::new(db.pool());
-    let user_count = user_repo.count_users().await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    let user_count = user_repo
+        .count_users()
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     if user_count > 0 {
-        return Err(ApiError::BadRequest("System has already been bootstrapped".to_string()));
+        return Err(ApiError::BadRequest(
+            "System has already been bootstrapped".to_string(),
+        ));
     }
 
     let password_hash = hash_password(&req.password)?;
@@ -32,7 +39,10 @@ pub async fn bootstrap_handler(
         updated_at: now,
     };
 
-    user_repo.create_user(&user).await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    user_repo
+        .create_user(&user)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     // Create default workspace for admin
     let ws_repo = WorkspaceRepository::new(db.pool());
@@ -42,7 +52,10 @@ pub async fn bootstrap_handler(
         owner_id: user.id,
         created_at: now,
     };
-    ws_repo.create_workspace(&default_ws).await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    ws_repo
+        .create_workspace(&default_ws)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     Ok(Json(UserResponse {
         id: user.id,
@@ -63,7 +76,9 @@ pub async fn login_handler(
         .ok_or_else(|| ApiError::Unauthorized("Invalid email or password".to_string()))?;
 
     if !verify_password(&req.password, &user.password_hash) {
-        return Err(ApiError::Unauthorized("Invalid email or password".to_string()));
+        return Err(ApiError::Unauthorized(
+            "Invalid email or password".to_string(),
+        ));
     }
 
     let token_raw = Uuid::new_v4().to_string();
@@ -79,7 +94,10 @@ pub async fn login_handler(
         created_at: now,
     };
 
-    user_repo.create_session(&session).await.map_err(|e| ApiError::Internal(e.to_string()))?;
+    user_repo
+        .create_session(&session)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     let cookie = format!(
         "loglens_session={}; Path=/; HttpOnly; SameSite=Lax; Max-Age={}",
